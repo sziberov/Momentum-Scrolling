@@ -1,0 +1,229 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script>
+	let momentum = true,
+		speedMultiplier = 0,
+		scrollerTimer = undefined;
+
+	$(document).keypress(function(e) {
+		if(e.code == 'KeyQ') {
+			momentum = !momentum;
+		}
+	});
+	document.addEventListener('mousewheel', (event) => {
+		let scrollView = $(event.target).parents('LFScrollView');
+
+		if(scrollView.length) {
+			let content = scrollView.children('*:not(LFScroller)')[0]
+
+			event.preventDefault();
+			if(speedMultiplier < 48) {
+				speedMultiplier = speedMultiplier+8;
+			}
+			if(content.scrollHeight > 0) {
+				let speed = momentum ? speedMultiplier : 16,
+					iteration = 0,
+					move = setInterval(() => {
+						let speedCurve = iteration < speed/2 ? iteration : speed-iteration,
+							toBottom = event.deltaY > 0 ? true : false;
+
+						content.scrollTo({
+							top: toBottom ? content.scrollTop+speedCurve : content.scrollTop-speedCurve,
+							behavior: 'instant'
+						});
+						if(toBottom && content.scrollTop == content.scrollHeight-scrollView.height() || !toBottom && content.scrollTop == 0) {
+							speedMultiplier = 0;
+							clearInterval(move);
+						}
+						if(iteration == speed) {
+							if(speedMultiplier > 0) {
+								speedMultiplier = speedMultiplier-8;
+							}
+							clearInterval(move);
+						} else {
+							iteration++;
+						}
+					}, 125/8);
+			}
+		}
+	}, { passive: false });
+	let scrollerButton = (event) => {
+		let scrollView = event.type == 'scroll' ? $(event.target).parents('LFScrollView') : $('body').find('LFScrollView');
+
+		if(scrollView.length) {
+			let content = scrollView.children('*:not(LFScroller)')[0],
+				scroller = scrollView.children('LFScroller[vertical]'),
+				scrollerButton = scroller.children('LFButton'),
+				scrollerButtonArea = scrollView.height()-(scrollerButton.outerHeight(true)-scrollerButton.height());
+
+			if(event.type == 'load') {
+				scrollerButton.css('height', scrollerButtonArea*(scrollView.height()/content.scrollHeight));
+			} else
+			if(event.type == 'scroll') {
+				clearTimeout(scrollerTimer);
+				scroller.attr('active', '');
+				scrollerTimer = setTimeout(() => {
+					scroller.removeAttr('active');
+				}, 1000);
+				scrollerButton.css('top', scrollerButtonArea/content.scrollHeight*content.scrollTop);
+			}
+		}
+	}
+	window.addEventListener('load', scrollerButton);
+	document.addEventListener('scroll', scrollerButton, { capture: true });
+	$(document).on('mousedown', 'LFScroller', (event) => {
+		let scrollView = $(event.target).parents('LFScrollView'),
+			content = scrollView.children('*:not(LFScroller)')[0],
+			scroller = scrollView.children('LFScroller[vertical]'),
+			scrollerButton = scroller.children('LFButton'),
+			y = event.pageY-(scroller.offset().top+scrollerButton.height()/2);
+
+		content.scrollTo({
+			top: content.scrollHeight/(scrollView.height()/y),
+			behavior: 'instant'
+		});
+	});
+</script>
+<style>
+	body {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	LFWindow {
+		display: flex;
+		flex-direction: column;
+
+		width: 768px;
+		height: 512px;
+
+		background: rgba(87.5%,87.5%,87.5%,1);
+		border-radius: 4px;
+		box-shadow:
+			0 0 0 1px rgba(0%,0%,0%,0.25),
+			0 8px 32px rgba(0%,0%,0%,0.5);
+
+		font: 12px Arial;
+	}
+
+	LFScrollView {
+		display: flex;
+
+		position: relative;
+
+		width: 100%;
+		height: 100%;
+	}
+
+	LFScrollView > * {
+		position: absolute!important;
+	}
+
+	LFScrollView > *:not(LFScroller) {
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+	}
+
+	LFScrollView > *:not(LFScroller)::-webkit-scrollbar {
+		display: none;
+	}
+
+	LFScrollView > LFScroller {
+		opacity: 0;
+		transition: opacity 250ms ease;
+	}
+
+	LFScroller:hover,
+	LFScroller[active] {
+		opacity: 1;
+	}
+
+	LFScroller {
+		position: relative;
+	}
+
+	LFScroller[vertical] {
+		top: 0;
+		right: 0;
+		bottom: 0;
+
+		width: 16px;
+
+		background:
+			linear-gradient(to right,
+				rgba(0%,0%,0%,0.125),
+				rgba(0%,0%,0%,0.0625)
+			);
+		box-shadow: inset 1px 0 rgba(0%,0%,0%,0.125);
+	}
+
+	LFScroller[vertical] LFButton {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+
+		min-height: 32px;
+
+		margin: 4px;
+
+		background: rgba(0%,0%,0%,0.25);
+		border-radius: 4px;
+
+		transition: background 250ms ease;
+	}
+
+	LFScroller:hover LFButton {
+		background: rgba(0%,0%,0%,0.5);
+	}
+
+	LFView {
+		flex: 1;
+
+		position: relative;
+
+		overflow: auto;
+	}
+
+	LFSquare {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		width: 100%;
+		height: 256px;
+
+		margin-top: 256px;
+
+		background: rgba(0%,0%,0%,0.125);
+	}
+</style>
+<LFWindow>
+	<LFScrollView>
+		<LFView>
+			<LFSquare>1</LFSquare>
+			<LFSquare>2</LFSquare>
+			<LFSquare>3</LFSquare>
+			<LFSquare>4</LFSquare>
+			<LFSquare>5</LFSquare>
+			<LFSquare>6</LFSquare>
+			<LFSquare>7</LFSquare>
+			<LFSquare>8</LFSquare>
+			<!--
+			<LFSquare>9</LFSquare>
+			<LFSquare>10</LFSquare>
+			<LFSquare>11</LFSquare>
+			<LFSquare>12</LFSquare>
+			<LFSquare>13</LFSquare>
+			<LFSquare>14</LFSquare>
+			<LFSquare>15</LFSquare>
+			<LFSquare>16</LFSquare>
+			-->
+		</LFView>
+		<LFScroller vertical>
+			<LFButton></LFButton>
+		</LFScroller>
+	</LFScrollView>
+</LFWindow>
